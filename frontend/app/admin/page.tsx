@@ -85,6 +85,19 @@ export default function AdminPage() {
     }
   }
 
+  async function excluir(id: string, nome: string) {
+    if (!confirm(`Excluir a campanha "${nome}" e todas as suas respostas? Essa ação não pode ser desfeita.`)) return;
+    setError("");
+    setAviso("");
+    try {
+      await apiJson(`/admin/campanhas/${id}`, { method: "DELETE" });
+      setAviso(`Campanha "${nome}" excluída.`);
+      await carregar();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao excluir campanha");
+    }
+  }
+
   return (
     <>
       <Header />
@@ -158,6 +171,12 @@ export default function AdminPage() {
                   >
                     Ver resultados
                   </Link>
+                  <button
+                    onClick={() => excluir(c.id, c.nome)}
+                    className="rounded-lg px-4 py-2 text-sm font-semibold border cursor-pointer text-red-700 border-red-300"
+                  >
+                    Excluir
+                  </button>
                 </div>
               </div>
             ))}

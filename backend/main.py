@@ -317,6 +317,17 @@ def get_campanha(campanha_id: str, _: None = Depends(require_admin)):
     return _campanha_summary(campanha)
 
 
+@app.delete("/admin/campanhas/{campanha_id}")
+def delete_campanha(campanha_id: str, _: None = Depends(require_admin)):
+    """Remove uma campanha e todas as suas respostas (ex: campanha de teste)."""
+    _campanha_or_404(campanha_id)
+    campanhas = [c for c in _load(CAMPANHAS_FILE) if c["id"] != campanha_id]
+    _save(CAMPANHAS_FILE, campanhas)
+    respostas = [r for r in _load(RESPOSTAS_FILE) if r["campanha_id"] != campanha_id]
+    _save(RESPOSTAS_FILE, respostas)
+    return {"ok": True}
+
+
 @app.post("/admin/campanhas/{campanha_id}/enviar")
 def enviar_campanha(campanha_id: str, _: None = Depends(require_admin)):
     _campanha_or_404(campanha_id)
