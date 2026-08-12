@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+campanhas.json
+respostas.json
+backups/
