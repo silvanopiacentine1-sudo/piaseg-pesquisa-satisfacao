@@ -76,7 +76,7 @@ export default function ResultadosPage({ params }: { params: Promise<{ id: strin
     );
   }
 
-  const { campanha, media_por_categoria, nps, comentarios, taxa_resposta } = dados;
+  const { campanha, media_por_categoria, nps, comentarios } = dados;
   const npsTotal = nps.promotores + nps.neutros + nps.detratores;
 
   return (
@@ -101,9 +101,8 @@ export default function ResultadosPage({ params }: { params: Promise<{ id: strin
         </div>
 
         {/* Stat tiles */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <StatTile label="Taxa de resposta" value={`${taxa_resposta}%`} sub={`${campanha.total_respondidos} de ${campanha.total_franqueados}`} />
-          <StatTile label="E-mails enviados" value={String(campanha.total_enviados)} sub={`de ${campanha.total_franqueados} franqueados`} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          <StatTile label="Total de respostas" value={String(campanha.total_respondidos)} sub="franqueados que responderam" />
           <StatTile label="NPS" value={nps.score !== null ? String(nps.score) : "—"} sub={`${npsTotal} resposta(s)`} />
         </div>
 
@@ -174,13 +173,7 @@ export default function ResultadosPage({ params }: { params: Promise<{ id: strin
             <div className="flex flex-col gap-4">
               {comentarios.map((c, i) => (
                 <div key={i} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
-                  <p className="text-xs text-gray-500 mb-1">
-                    <span className="font-semibold" style={{ color: "#072a3c" }}>
-                      {c.franqueado_nome}
-                    </span>
-                    {" · "}
-                    {c.pergunta_texto}
-                  </p>
+                  <p className="text-xs text-gray-500 mb-1">{c.pergunta_texto}</p>
                   <p className="text-sm text-gray-800 whitespace-pre-wrap">{c.texto}</p>
                 </div>
               ))}

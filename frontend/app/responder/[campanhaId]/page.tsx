@@ -2,26 +2,38 @@
 
 import { use, useEffect, useState } from "react";
 import { API } from "../../lib/api";
-import type { RespostaToken } from "../../lib/types";
+import type { Pesquisa } from "../../lib/types";
 
-export default function ResponderPage({ params }: { params: Promise<{ token: string }> }) {
-  const { token } = use(params);
-  const [dados, setDados] = useState<RespostaToken | null>(null);
+function jaRespondeuLocalmente(campanhaId: string): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(`pesquisa_respondida_${campanhaId}`) === "1";
+}
+
+function marcarComoRespondida(campanhaId: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(`pesquisa_respondida_${campanhaId}`, "1");
+}
+
+export default function ResponderPage({ params }: { params: Promise<{ campanhaId: string }> }) {
+  const { campanhaId } = use(params);
+  const [dados, setDados] = useState<Pesquisa | null>(null);
   const [erroCarregamento, setErroCarregamento] = useState("");
   const [respostas, setRespostas] = useState<Record<string, number | string>>({});
   const [enviando, setEnviando] = useState(false);
   const [erroEnvio, setErroEnvio] = useState("");
   const [enviado, setEnviado] = useState(false);
+  const [jaRespondeu, setJaRespondeu] = useState(false);
 
   useEffect(() => {
-    fetch(`${API}/respostas/token/${token}`)
+    setJaRespondeu(jaRespondeuLocalmente(campanhaId));
+    fetch(`${API}/pesquisa/${campanhaId}`)
       .then((res) => {
-        if (!res.ok) throw new Error("Link inválido ou expirado.");
+        if (!res.ok) throw new Error("Pesquisa não encontrada.");
         return res.json();
       })
       .then(setDados)
       .catch((e) => setErroCarregamento(e.message));
-  }, [token]);
+  }, [campanhaId]);
 
   function setValor(perguntaId: string, valor: number | string) {
     setRespostas((prev) => ({ ...prev, [perguntaId]: valor }));
@@ -38,7 +50,7 @@ export default function ResponderPage({ params }: { params: Promise<{ token: str
     setEnviando(true);
     setErroEnvio("");
     try {
-      const res = await fetch(`${API}/respostas/token/${token}`, {
+      const res = await fetch(`${API}/pesquisa/${campanhaId}/respostas`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ respostas }),
@@ -47,6 +59,7 @@ export default function ResponderPage({ params }: { params: Promise<{ token: str
         const data = await res.json().catch(() => ({}));
         throw new Error(data.detail ?? "Não foi possível enviar suas respostas.");
       }
+      marcarComoRespondida(campanhaId);
       setEnviado(true);
     } catch (e) {
       setErroEnvio(e instanceof Error ? e.message : "Erro ao enviar");
@@ -71,11 +84,11 @@ export default function ResponderPage({ params }: { params: Promise<{ token: str
     );
   }
 
-  if (dados.respondido || enviado) {
+  if (jaRespondeu || enviado) {
     return (
       <CenteredCard>
         <h1 className="font-heading text-xl mb-2" style={{ color: "#072a3c" }}>
-          Obrigado{dados.franqueado_nome ? `, ${dados.franqueado_nome}` : ""}!
+          Obrigado!
         </h1>
         <p className="text-gray-600">Sua resposta já foi registrada. Agradecemos por dedicar seu tempo à pesquisa.</p>
       </CenteredCard>
@@ -90,7 +103,7 @@ export default function ResponderPage({ params }: { params: Promise<{ token: str
         <h1 className="font-heading text-xl" style={{ color: "#c2a360" }}>
           {dados.campanha_nome}
         </h1>
-        <p className="text-white/80 text-sm mt-2">Olá, {dados.franqueado_nome}. Sua opinião é muito importante para nós.</p>
+        <p className="text-white/80 text-sm mt-2">Sua opinião é muito importante para nós.</p>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-8">

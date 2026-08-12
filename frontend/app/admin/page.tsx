@@ -14,14 +14,16 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [novoNome, setNovoNome] = useState("");
   const [criando, setCriando] = useState(false);
-  const [enviandoId, setEnviandoId] = useState<string | null>(null);
   const [aviso, setAviso] = useState("");
+  const [linkCopiado, setLinkCopiado] = useState<string | null>(null);
+  const [origin, setOrigin] = useState("");
 
   useEffect(() => {
     if (!isAdminLoggedIn()) {
       router.push("/admin/login");
       return;
     }
+    setOrigin(window.location.origin);
     carregar();
   }, [router]);
 
@@ -41,47 +43,14 @@ export default function AdminPage() {
     setError("");
     setAviso("");
     try {
-      const resultado = await apiJson<{
-        franqueados_incluidos: number;
-        franqueados_sem_email: string[];
-      }>("/admin/campanhas", {
-        method: "POST",
-        body: JSON.stringify({ nome: novoNome.trim() }),
-      });
+      await apiJson("/admin/campanhas", { method: "POST", body: JSON.stringify({ nome: novoNome.trim() }) });
       setNovoNome("");
-      let msg = `Campanha criada com ${resultado.franqueados_incluidos} franqueado(s).`;
-      if (resultado.franqueados_sem_email.length > 0) {
-        msg += ` ${resultado.franqueados_sem_email.length} franqueado(s) sem e-mail cadastrado ficaram de fora: ${resultado.franqueados_sem_email.join(", ")}.`;
-      }
-      setAviso(msg);
+      setAviso("Campanha criada. Copie o link abaixo e compartilhe com os franqueados (site, WhatsApp, onde preferir).");
       await carregar();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao criar campanha");
     } finally {
       setCriando(false);
-    }
-  }
-
-  async function enviar(id: string) {
-    if (!confirm("Enviar o e-mail da pesquisa para todos os franqueados pendentes desta campanha?")) return;
-    setEnviandoId(id);
-    setError("");
-    setAviso("");
-    try {
-      const resultado = await apiJson<{ enviados: number; falhas: { franqueado_nome: string; erro: string }[] }>(
-        `/admin/campanhas/${id}/enviar`,
-        { method: "POST" }
-      );
-      let msg = `${resultado.enviados} e-mail(s) enviado(s).`;
-      if (resultado.falhas.length > 0) {
-        msg += ` Falhou para: ${resultado.falhas.map((f) => f.franqueado_nome).join(", ")}.`;
-      }
-      setAviso(msg);
-      await carregar();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao enviar e-mails");
-    } finally {
-      setEnviandoId(null);
     }
   }
 
@@ -96,6 +65,13 @@ export default function AdminPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao excluir campanha");
     }
+  }
+
+  async function copiarLink(id: string) {
+    const link = `${origin}/responder/${id}`;
+    await navigator.clipboard.writeText(link);
+    setLinkCopiado(id);
+    setTimeout(() => setLinkCopiado(null), 2000);
   }
 
   return (
@@ -137,33 +113,27 @@ export default function AdminPage() {
           <div className="flex flex-col gap-3">
             {campanhas.map((c) => (
               <div key={c.id} className="bg-white rounded-xl p-5 shadow flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <Link href={`/admin/campanhas/${c.id}`} className="font-semibold hover:underline" style={{ color: "#072a3c" }}>
                     {c.nome}
                   </Link>
                   <p className="text-xs text-gray-500">
-                    Criada em {new Date(c.criada_em).toLocaleDateString("pt-BR")} · {c.total_franqueados} franqueado(s)
+                    Criada em {new Date(c.criada_em).toLocaleDateString("pt-BR")} · {c.total_respondidos} resposta(s)
                   </p>
-                </div>
-                <div className="flex items-center gap-4 text-sm">
-                  <span>
-                    <strong>{c.total_enviados}</strong>/{c.total_franqueados} enviados
-                  </span>
-                  <span>
-                    <strong>{c.total_respondidos}</strong> respondidos
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  {c.total_enviados < c.total_franqueados && (
-                    <button
-                      onClick={() => enviar(c.id)}
-                      disabled={enviandoId === c.id}
-                      className="rounded-lg px-4 py-2 text-sm font-semibold text-white cursor-pointer disabled:opacity-60"
-                      style={{ background: "#c2a360" }}
-                    >
-                      {enviandoId === c.id ? "Enviando..." : "Enviar e-mails"}
-                    </button>
+                  {origin && (
+                    <p className="text-xs text-gray-400 mt-1 truncate">
+                      {origin}/responder/{c.id}
+                    </p>
                   )}
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={() => copiarLink(c.id)}
+                    className="rounded-lg px-4 py-2 text-sm font-semibold text-white cursor-pointer"
+                    style={{ background: "#c2a360" }}
+                  >
+                    {linkCopiado === c.id ? "Link copiado!" : "Copiar link"}
+                  </button>
                   <Link
                     href={`/admin/campanhas/${c.id}`}
                     className="rounded-lg px-4 py-2 text-sm font-semibold border cursor-pointer"

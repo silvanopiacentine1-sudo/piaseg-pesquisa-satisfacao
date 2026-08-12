@@ -4,4 +4,5 @@ __pycache__/
 .env
 campanhas.json
 respostas.json
+perguntas.json
 backups/

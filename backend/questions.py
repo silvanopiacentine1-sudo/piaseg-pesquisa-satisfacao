@@ -1,13 +1,14 @@
-# Questionário ativo da Pesquisa de Satisfação de Franqueados.
-# Cada campanha nova grava uma cópia (snapshot) dessa lista no momento da criação,
-# então mudar este arquivo não altera campanhas já criadas — só as futuras.
+# Seed inicial do questionário — só é usado na primeira vez que o backend sobe
+# (grava em perguntas.json no disco persistente). Depois disso, quem manda é o
+# conteúdo de perguntas.json, editável pelo painel em /admin/perguntas — mudar
+# este arquivo NÃO afeta produção depois do primeiro deploy.
 #
 # As categorias espelham as áreas reais da franqueadora (mesmos departamentos do
 # Piaseg Chamados) para que o painel possa mostrar uma nota por área: Geral,
 # Comercial, Operacional e Marketing. Não mudar esses 4 nomes sem atualizar
-# também AREA_ORDER no frontend (app/lib/areas.ts).
+# também AREA_ORDER no frontend (app/admin/campanhas/[id]/page.tsx).
 
-QUESTIONS: list[dict] = [
+DEFAULT_QUESTIONS: list[dict] = [
     # --- Geral: relacionamento com a franqueadora como um todo ---
     {"id": "satisfacao_geral", "categoria": "Geral", "tipo": "escala5",
      "texto": "De forma geral, estou satisfeito(a) como franqueado(a) Piaseg."},

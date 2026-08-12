@@ -19,6 +19,12 @@ export default function Header() {
           Pesquisa de Satisfação Piaseg
         </Link>
         <nav className="flex items-center gap-4 text-sm">
+          <Link href="/admin" className="text-white/90 hover:text-white font-semibold">
+            Campanhas
+          </Link>
+          <Link href="/admin/perguntas" className="text-white/90 hover:text-white font-semibold">
+            Perguntas
+          </Link>
           <button onClick={handleLogout} className="text-white/90 hover:text-white font-semibold cursor-pointer">
             Sair
           </button>
