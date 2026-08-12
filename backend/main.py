@@ -58,6 +58,12 @@ _BACKUP_FILES = ["campanhas.json", "respostas.json", "perguntas.json"]
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 TIPOS_VALIDOS = {"escala5", "nps", "texto"}
 
+# Toda pergunta de escala (escala5/nps) ganha automaticamente um campo de
+# comentário livre opcional no formulário, guardado sob "{id}__comentario"
+# nas respostas — não é uma pergunta própria, por isso não entra em
+# perguntas.json nem precisa ser criada manualmente pelo admin.
+SUFIXO_COMENTARIO = "__comentario"
+
 
 def _load(path: Path) -> list:
     if path.exists():
@@ -298,6 +304,8 @@ def resultados_campanha(campanha_id: str, _: None = Depends(require_admin)):
     detratores = sum(1 for v in nps_valores if v <= 6)
     nps_score = round(((promotores - detratores) / len(nps_valores)) * 100) if nps_valores else None
 
+    escala_ids = [q["id"] for q in perguntas if q["tipo"] in ("escala5", "nps")]
+
     comentarios = []
     for r in respostas:
         for q_id in texto_ids:
@@ -306,6 +314,15 @@ def resultados_campanha(campanha_id: str, _: None = Depends(require_admin)):
                 comentarios.append({
                     "pergunta_id": q_id,
                     "pergunta_texto": perguntas_por_id[q_id]["texto"],
+                    "texto": texto,
+                    "respondido_em": r["respondido_em"],
+                })
+        for q_id in escala_ids:
+            texto = (r["respostas"] or {}).get(q_id + SUFIXO_COMENTARIO)
+            if texto and str(texto).strip():
+                comentarios.append({
+                    "pergunta_id": q_id + SUFIXO_COMENTARIO,
+                    "pergunta_texto": f"Comentário sobre: {perguntas_por_id[q_id]['texto']}",
                     "texto": texto,
                     "respondido_em": r["respondido_em"],
                 })
@@ -329,12 +346,18 @@ def export_campanha(campanha_id: str, _: None = Depends(require_admin)):
     wb = Workbook()
     ws = wb.active
     ws.title = "Respostas"
-    headers = ["Respondido em"] + [q["texto"] for q in perguntas]
+    headers = ["Respondido em"]
+    for q in perguntas:
+        headers.append(q["texto"])
+        if q["tipo"] in ("escala5", "nps"):
+            headers.append(f"{q['texto']} (comentário)")
     ws.append(headers)
     for r in respostas:
         row = [r["respondido_em"] or ""]
         for q in perguntas:
             row.append((r["respostas"] or {}).get(q["id"], ""))
+            if q["tipo"] in ("escala5", "nps"):
+                row.append((r["respostas"] or {}).get(q["id"] + SUFIXO_COMENTARIO, ""))
         ws.append(row)
 
     buffer = BytesIO()

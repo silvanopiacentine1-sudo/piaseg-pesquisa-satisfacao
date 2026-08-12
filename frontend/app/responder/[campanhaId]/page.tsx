@@ -4,6 +4,8 @@ import { use, useEffect, useState } from "react";
 import { API } from "../../lib/api";
 import type { Pesquisa } from "../../lib/types";
 
+const SUFIXO_COMENTARIO = "__comentario";
+
 function jaRespondeuLocalmente(campanhaId: string): boolean {
   if (typeof window === "undefined") return false;
   return localStorage.getItem(`pesquisa_respondida_${campanhaId}`) === "1";
@@ -128,6 +130,15 @@ export default function ResponderPage({ params }: { params: Promise<{ campanhaId
                     rows={3}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                     placeholder="Opcional"
+                  />
+                )}
+                {(p.tipo === "escala5" || p.tipo === "nps") && (
+                  <textarea
+                    value={(respostas[p.id + SUFIXO_COMENTARIO] as string) || ""}
+                    onChange={(e) => setValor(p.id + SUFIXO_COMENTARIO, e.target.value)}
+                    rows={2}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-3"
+                    placeholder="Comente sua nota (opcional)"
                   />
                 )}
               </div>
