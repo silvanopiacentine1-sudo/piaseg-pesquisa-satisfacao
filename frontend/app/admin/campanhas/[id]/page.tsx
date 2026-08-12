@@ -8,8 +8,23 @@ import { isAdminLoggedIn } from "../../../lib/auth";
 import Header from "../../../components/Header";
 import type { ResultadosCampanha } from "../../../lib/types";
 
-const CATEGORIA_COLOR = "#072a3c";
 const NPS_COLORS = { detratores: "#d03b3b", neutros: "#898781", promotores: "#0ca30c" };
+
+const AREA_ORDER = ["Geral", "Comercial", "Operacional", "Marketing"];
+
+const STATUS = {
+  good: { color: "#0ca30c", label: "Bom" },
+  warning: { color: "#fab219", label: "Atenção" },
+  critical: { color: "#d03b3b", label: "Crítico" },
+  neutro: { color: "#898781", label: "Sem dados" },
+};
+
+function statusForScore(score: number | null) {
+  if (score === null) return STATUS.neutro;
+  if (score >= 4) return STATUS.good;
+  if (score >= 3) return STATUS.warning;
+  return STATUS.critical;
+}
 
 export default function ResultadosPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -92,30 +107,29 @@ export default function ResultadosPage({ params }: { params: Promise<{ id: strin
           <StatTile label="NPS" value={nps.score !== null ? String(nps.score) : "—"} sub={`${npsTotal} resposta(s)`} />
         </div>
 
-        {/* Média por categoria */}
-        <section className="bg-white rounded-xl p-6 shadow mb-8">
+        {/* Notas por área */}
+        <section className="mb-8">
           <h2 className="font-heading text-lg mb-4" style={{ color: "#072a3c" }}>
-            Média por categoria (escala de 1 a 5)
+            Notas por área (escala de 1 a 5)
           </h2>
-          {media_por_categoria.length === 0 ? (
-            <p className="text-sm text-gray-500">Ainda não há respostas suficientes.</p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {media_por_categoria.map((c) => (
-                <div key={c.categoria} className="flex items-center gap-3">
-                  <span className="w-56 shrink-0 text-sm text-gray-700">{c.categoria}</span>
-                  <div className="flex-1 h-4 rounded-full" style={{ background: "#e1e0d9" }}>
-                    <div
-                      className="h-4 rounded-full flex items-center justify-end pr-2"
-                      style={{ width: `${((c.media ?? 0) / 5) * 100}%`, background: CATEGORIA_COLOR, minWidth: "2rem" }}
-                    >
-                      <span className="text-xs font-semibold text-white">{c.media ?? "—"}</span>
-                    </div>
-                  </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {AREA_ORDER.map((area) => {
+              const c = media_por_categoria.find((m) => m.categoria === area);
+              const media = c?.media ?? null;
+              const status = statusForScore(media);
+              return (
+                <div key={area} className="bg-white rounded-xl p-5 shadow border-l-4" style={{ borderColor: status.color }}>
+                  <p className="text-sm font-semibold text-gray-700 mb-1">{area}</p>
+                  <p className="text-3xl font-semibold" style={{ color: "#072a3c" }}>
+                    {media ?? "—"}
+                  </p>
+                  <p className="text-xs mt-1 font-medium" style={{ color: status.color }}>
+                    {status.label}
+                  </p>
                 </div>
-              ))}
-            </div>
-          )}
+              );
+            })}
+          </div>
         </section>
 
         {/* NPS breakdown */}
