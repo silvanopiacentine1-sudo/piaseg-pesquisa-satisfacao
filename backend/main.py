@@ -56,13 +56,20 @@ MAX_BACKUPS = 30
 _BACKUP_FILES = ["campanhas.json", "respostas.json", "perguntas.json"]
 
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
-TIPOS_VALIDOS = {"escala5", "nps", "texto"}
+TIPOS_VALIDOS = {"escala10", "texto"}
 
-# Toda pergunta de escala (escala5/nps) ganha automaticamente um campo de
+# Toda pergunta de escala (escala10) ganha automaticamente um campo de
 # comentário livre opcional no formulário, guardado sob "{id}__comentario"
 # nas respostas — não é uma pergunta própria, por isso não entra em
 # perguntas.json nem precisa ser criada manualmente pelo admin.
 SUFIXO_COMENTARIO = "__comentario"
+
+# Id fixo da pergunta usada para o gauge clássico de NPS (promotores/
+# neutros/detratores). Não é mais um "tipo" separado — é só uma pergunta
+# de escala 0-10 como outra qualquer, mas com esse id específico ela também
+# alimenta a seção "Net Promoter Score" do painel. Se não existir nenhuma
+# pergunta com esse id na campanha, a seção simplesmente fica vazia.
+NPS_QUESTION_ID = "nps"
 
 
 def _load(path: Path) -> list:
@@ -147,7 +154,18 @@ def _load_perguntas_atuais() -> list[dict]:
     if not PERGUNTAS_FILE.exists():
         _save(PERGUNTAS_FILE, DEFAULT_QUESTIONS)
         return DEFAULT_QUESTIONS
-    return json.loads(PERGUNTAS_FILE.read_text(encoding="utf-8"))
+
+    perguntas = json.loads(PERGUNTAS_FILE.read_text(encoding="utf-8"))
+    # Migração: tipos antigos "escala5" (1-5) e "nps" (0-10) viraram um único
+    # tipo "escala10" (0-10). Preserva id/categoria/texto, só unifica o tipo.
+    mudou = False
+    for p in perguntas:
+        if p["tipo"] in ("escala5", "nps"):
+            p["tipo"] = "escala10"
+            mudou = True
+    if mudou:
+        _save(PERGUNTAS_FILE, perguntas)
+    return perguntas
 
 
 # ---------------------------------------------------------------------------
@@ -270,18 +288,18 @@ def resultados_campanha(campanha_id: str, _: None = Depends(require_admin)):
 
     perguntas = campanha["perguntas"]
     perguntas_por_id = {q["id"]: q for q in perguntas}
-    nps_question = next((q["id"] for q in perguntas if q["tipo"] == "nps"), None)
     texto_ids = [q["id"] for q in perguntas if q["tipo"] == "texto"]
+    escala_ids = [q["id"] for q in perguntas if q["tipo"] == "escala10"]
 
     categorias: dict[str, dict] = {}
     distribuicoes: dict[str, dict[str, int]] = {
-        q["id"]: {str(v): 0 for v in range(1, 6)} for q in perguntas if q["tipo"] == "escala5"
+        q_id: {str(v): 0 for v in range(0, 11)} for q_id in escala_ids
     }
 
     for r in respostas:
         for q_id, valor in (r["respostas"] or {}).items():
             q = perguntas_por_id.get(q_id)
-            if not q or q["tipo"] != "escala5" or not isinstance(valor, (int, float)):
+            if not q or q["tipo"] != "escala10" or not isinstance(valor, (int, float)):
                 continue
             cat = categorias.setdefault(q["categoria"], {"soma": 0.0, "count": 0})
             cat["soma"] += valor
@@ -295,16 +313,14 @@ def resultados_campanha(campanha_id: str, _: None = Depends(require_admin)):
     ]
 
     nps_valores = [
-        r["respostas"][nps_question]
+        r["respostas"][NPS_QUESTION_ID]
         for r in respostas
-        if nps_question and r["respostas"] and isinstance(r["respostas"].get(nps_question), (int, float))
+        if NPS_QUESTION_ID in perguntas_por_id and r["respostas"] and isinstance(r["respostas"].get(NPS_QUESTION_ID), (int, float))
     ]
     promotores = sum(1 for v in nps_valores if v >= 9)
     neutros = sum(1 for v in nps_valores if 7 <= v <= 8)
     detratores = sum(1 for v in nps_valores if v <= 6)
     nps_score = round(((promotores - detratores) / len(nps_valores)) * 100) if nps_valores else None
-
-    escala_ids = [q["id"] for q in perguntas if q["tipo"] in ("escala5", "nps")]
 
     comentarios = []
     for r in respostas:
@@ -349,14 +365,14 @@ def export_campanha(campanha_id: str, _: None = Depends(require_admin)):
     headers = ["Respondido em"]
     for q in perguntas:
         headers.append(q["texto"])
-        if q["tipo"] in ("escala5", "nps"):
+        if q["tipo"] == "escala10":
             headers.append(f"{q['texto']} (comentário)")
     ws.append(headers)
     for r in respostas:
         row = [r["respondido_em"] or ""]
         for q in perguntas:
             row.append((r["respostas"] or {}).get(q["id"], ""))
-            if q["tipo"] in ("escala5", "nps"):
+            if q["tipo"] == "escala10":
                 row.append((r["respostas"] or {}).get(q["id"] + SUFIXO_COMENTARIO, ""))
         ws.append(row)
 
@@ -388,10 +404,7 @@ def submit_resposta(campanha_id: str, body: RespostaSubmit):
 
     for q in campanha["perguntas"]:
         valor = body.respostas.get(q["id"])
-        if q["tipo"] == "escala5":
-            if not isinstance(valor, int) or not (1 <= valor <= 5):
-                raise HTTPException(status_code=400, detail=f"Resposta inválida para '{q['texto']}'")
-        elif q["tipo"] == "nps":
+        if q["tipo"] == "escala10":
             if not isinstance(valor, int) or not (0 <= valor <= 10):
                 raise HTTPException(status_code=400, detail=f"Resposta inválida para '{q['texto']}'")
 

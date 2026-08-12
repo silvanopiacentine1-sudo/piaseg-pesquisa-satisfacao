@@ -1,4 +1,4 @@
-export type TipoPergunta = "escala5" | "nps" | "texto";
+export type TipoPergunta = "escala10" | "texto";
 
 export interface Pergunta {
   id: string;

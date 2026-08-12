@@ -121,8 +121,7 @@ export default function ResponderPage({ params }: { params: Promise<{ campanhaId
               )}
               <div id={p.id} className="bg-white rounded-xl p-5 shadow mb-3">
                 <p className="text-sm font-medium text-gray-800 mb-3">{p.texto}</p>
-                {p.tipo === "escala5" && <Escala5 valor={respostas[p.id] as number} onChange={(v) => setValor(p.id, v)} />}
-                {p.tipo === "nps" && <EscalaNps valor={respostas[p.id] as number} onChange={(v) => setValor(p.id, v)} />}
+                {p.tipo === "escala10" && <Escala10 valor={respostas[p.id] as number} onChange={(v) => setValor(p.id, v)} />}
                 {p.tipo === "texto" && (
                   <textarea
                     value={(respostas[p.id] as string) || ""}
@@ -132,7 +131,7 @@ export default function ResponderPage({ params }: { params: Promise<{ campanhaId
                     placeholder="Opcional"
                   />
                 )}
-                {(p.tipo === "escala5" || p.tipo === "nps") && (
+                {p.tipo === "escala10" && (
                   <textarea
                     value={(respostas[p.id + SUFIXO_COMENTARIO] as string) || ""}
                     onChange={(e) => setValor(p.id + SUFIXO_COMENTARIO, e.target.value)}
@@ -161,15 +160,15 @@ export default function ResponderPage({ params }: { params: Promise<{ campanhaId
   );
 }
 
-function Escala5({ valor, onChange }: { valor: number; onChange: (v: number) => void }) {
+function Escala10({ valor, onChange }: { valor: number; onChange: (v: number) => void }) {
   return (
-    <div className="flex gap-2">
-      {[1, 2, 3, 4, 5].map((n) => (
+    <div className="flex gap-1 flex-wrap">
+      {Array.from({ length: 11 }, (_, n) => n).map((n) => (
         <button
           key={n}
           type="button"
           onClick={() => onChange(n)}
-          className="flex-1 h-10 rounded-lg font-semibold text-sm cursor-pointer border"
+          className="w-9 h-9 rounded-lg font-semibold text-xs cursor-pointer border"
           style={
             valor === n
               ? { background: "#072a3c", color: "white", borderColor: "#072a3c" }
@@ -179,34 +178,6 @@ function Escala5({ valor, onChange }: { valor: number; onChange: (v: number) => 
           {n}
         </button>
       ))}
-    </div>
-  );
-}
-
-function EscalaNps({ valor, onChange }: { valor: number; onChange: (v: number) => void }) {
-  return (
-    <div>
-      <div className="flex gap-1 flex-wrap">
-        {Array.from({ length: 11 }, (_, n) => n).map((n) => (
-          <button
-            key={n}
-            type="button"
-            onClick={() => onChange(n)}
-            className="w-9 h-9 rounded-lg font-semibold text-xs cursor-pointer border"
-            style={
-              valor === n
-                ? { background: "#072a3c", color: "white", borderColor: "#072a3c" }
-                : { background: "white", color: "#072a3c", borderColor: "#d1d5db" }
-            }
-          >
-            {n}
-          </button>
-        ))}
-      </div>
-      <div className="flex justify-between text-[11px] text-gray-400 mt-1">
-        <span>Nada provável</span>
-        <span>Extremamente provável</span>
-      </div>
     </div>
   );
 }

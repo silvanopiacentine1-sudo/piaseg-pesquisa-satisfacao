@@ -9,8 +9,7 @@ import type { Pergunta, TipoPergunta } from "../../lib/types";
 
 const CATEGORIAS = ["Geral", "Comercial", "Operacional", "Marketing", "Comentários"];
 const TIPOS: { valor: TipoPergunta; label: string }[] = [
-  { valor: "escala5", label: "Escala de 1 a 5" },
-  { valor: "nps", label: "NPS (0 a 10)" },
+  { valor: "escala10", label: "Escala de 0 a 10" },
   { valor: "texto", label: "Texto livre" },
 ];
 
@@ -65,7 +64,7 @@ export default function PerguntasPage() {
     if (!perguntas) return;
     setPerguntas([
       ...perguntas,
-      { id: "", categoria, tipo: categoria === "Comentários" ? "texto" : "escala5", texto: "" },
+      { id: "", categoria, tipo: categoria === "Comentários" ? "texto" : "escala10", texto: "" },
     ]);
   }
 
@@ -130,7 +129,7 @@ export default function PerguntasPage() {
         </h1>
         <p className="text-sm text-gray-500 mb-6">
           Esse é o questionário que será usado na próxima campanha que você criar. Alterar aqui não muda campanhas já existentes.
-          Perguntas de <strong>Escala de 1 a 5</strong> e <strong>NPS</strong> já ganham automaticamente um campo de comentário livre
+          Perguntas de <strong>Escala de 0 a 10</strong> já ganham automaticamente um campo de comentário livre
           opcional ("Comente sua nota") no formulário — não precisa criar isso manualmente.
         </p>
 

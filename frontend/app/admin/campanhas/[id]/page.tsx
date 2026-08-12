@@ -21,8 +21,8 @@ const STATUS = {
 
 function statusForScore(score: number | null) {
   if (score === null) return STATUS.neutro;
-  if (score >= 4) return STATUS.good;
-  if (score >= 3) return STATUS.warning;
+  if (score >= 8) return STATUS.good;
+  if (score >= 6) return STATUS.warning;
   return STATUS.critical;
 }
 
@@ -109,7 +109,7 @@ export default function ResultadosPage({ params }: { params: Promise<{ id: strin
         {/* Notas por área */}
         <section className="mb-8">
           <h2 className="font-heading text-lg mb-4" style={{ color: "#072a3c" }}>
-            Notas por área (escala de 1 a 5)
+            Notas por área (escala de 0 a 10)
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {AREA_ORDER.map((area) => {
