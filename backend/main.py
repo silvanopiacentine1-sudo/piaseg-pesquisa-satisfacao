@@ -172,6 +172,12 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/admin/debug-raw/{campanha_id}")
+def debug_raw(campanha_id: str, _: None = Depends(require_admin)):
+    """Endpoint temporário de investigação — remover em seguida."""
+    return [r for r in _load(RESPOSTAS_FILE) if r["campanha_id"] == campanha_id]
+
+
 # ---------------------------------------------------------------------------
 # Admin login
 # ---------------------------------------------------------------------------
