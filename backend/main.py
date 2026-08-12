@@ -328,6 +328,14 @@ def delete_campanha(campanha_id: str, _: None = Depends(require_admin)):
     return {"ok": True}
 
 
+@app.post("/admin/test-email")
+def test_email(to: str, _: None = Depends(require_admin)):
+    """Endpoint temporário para validar o envio real de e-mail em produção
+    antes do primeiro disparo de campanha de verdade. Remover depois de usado."""
+    _send_email(to, "Teste — Pesquisa de Satisfação Piaseg", _render_convite_html("Silvano", f"{FRONTEND_URL}/responder/teste-nao-existe"))
+    return {"ok": True}
+
+
 @app.post("/admin/campanhas/{campanha_id}/enviar")
 def enviar_campanha(campanha_id: str, _: None = Depends(require_admin)):
     _campanha_or_404(campanha_id)
